@@ -1,3 +1,4 @@
+import datetime
 from enum import StrEnum
 from copy import deepcopy
 
@@ -73,6 +74,10 @@ class Subject:
 		for k, v in self.__dict__.items():
 			setattr(result, k, deepcopy(v, memo))
 		return result
+
+	def to_dict(self) -> dict:
+		"""To serialize"""
+		return {"name": self.name, "answers": [answer.value for answer in self.answers]}
 
 
 theoretical_blueprints = [
@@ -200,7 +205,7 @@ class QuizCategory:
 		), f"{len(self.array_view)} questions in {name} instead of {NUM_QUESTIONS_PER_CATEGORY}"
 
 	@property
-	def dict(self) -> dict[str, Subject]:
+	def map_view(self) -> dict[str, Subject]:
 		return self._subjects_dict
 
 	@property
@@ -209,19 +214,28 @@ class QuizCategory:
 
 	@property
 	def num_correct(self):
-		return sum(subject.num_correct for subject in self.dict.values())
+		return sum(subject.num_correct for subject in self.map_view.values())
 
 	@property
 	def num_wrong(self):
-		return sum(subject.num_wrong for subject in self.dict.values())
+		return sum(subject.num_wrong for subject in self.map_view.values())
 
 	@property
 	def num_empty(self):
-		return sum(subject.num_empty for subject in self.dict.values())
+		return sum(subject.num_empty for subject in self.map_view.values())
 
 	@property
 	def num_net(self):
-		return sum(subject.num_net for subject in self.dict.values())
+		return sum(subject.num_net for subject in self.map_view.values())
+
+	def to_dict(self) -> dict:
+		"""To serialize"""
+		return {
+			"name": self.name,
+			"subjects": {
+				name: subject.to_dict() for name, subject in self._subjects_dict.items()
+			},
+		}
 
 
 class Quiz:
@@ -246,10 +260,11 @@ class Quiz:
 		self._length = len(self.theoretical.array_view) + len(self.clinical.array_view)
 		self._current: QuizCategory = self.theoretical
 		self._answers_painted = False
+		self.created_at = datetime.datetime.now().strftime("%y_%m_%d")
 
 	@property
 	def subject_count(self):
-		return len(self.theoretical.dict) + len(self.clinical.dict)
+		return len(self.theoretical.map_view) + len(self.clinical.map_view)
 
 	@property
 	def _num_painted_lines(self):
@@ -266,7 +281,7 @@ class Quiz:
 			+ f"{self.theoretical.num_empty:3d}{Answer.EMPTY} "
 			+ f"-> {self.theoretical.num_net:5.2f}"
 		)
-		for subject in self.theoretical.dict.values():
+		for subject in self.theoretical.map_view.values():
 			overwrite_line(f"\t{subject}")
 		overwrite_line(
 			f"{self.clinical.name}: ({self.clinical.array_view.current_index:2d}/{NUM_QUESTIONS_PER_CATEGORY}) \t"
@@ -275,7 +290,7 @@ class Quiz:
 			+ f"{self.clinical.num_empty:3d}{Answer.EMPTY} "
 			+ f"-> {self.clinical.num_net:5.2f}"
 		)
-		for subject in self.clinical.dict.values():
+		for subject in self.clinical.map_view.values():
 			overwrite_line(f"\t{subject}")
 
 	def paint_answers(self):
@@ -295,3 +310,11 @@ class Quiz:
 
 	def erase(self) -> bool:
 		return self._current.array_view.erase_last()
+
+	def to_dict(self) -> dict:
+		"""To serialize"""
+		return {
+			"created_at": self.created_at,
+			"theoretical": self.theoretical.to_dict(),
+			"clinical": self.clinical.to_dict(),
+		}
