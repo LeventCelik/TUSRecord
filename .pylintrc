@@ -1,0 +1,16 @@
+[MASTER]
+ignore=.venv
+
+[FORMAT]
+indent-string=\t
+max-line-length=100
+disable=C0301
+
+[MESSAGES CONTROL]
+# Reduce noise.
+# C0114: Missing module docstring - Small project done over a day.
+# C0115: Missing class docstring - Similar to module docstring.
+# C0116: Missing function or method docstring - Similar to module docstring.
+# C0415: Import outside top level - I import conditionally for a single function
+# C0401: Import errror - Conditional import platform compatibility error
+disable=C0114, C0115, C0116, C0415, E0401
